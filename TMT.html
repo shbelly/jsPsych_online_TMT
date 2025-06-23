@@ -444,28 +444,41 @@ function shuffle(array) {
         preload_images: images, 
 
         //When experiment finish, the function in on_finish activates
-        on_finish: function(){
-      
-        // Display data
-        jsPsych.data.displayData();
+       on_finish: function() {
+    // Get participant data from welcome block
+    const participant = jsPsych.data.get().filter({screen_id:"Bienvenidx"}).values()[0] || {};
 
-        //Save data as CSV
-        let CSV = jsPsych.data.get().csv();
-         // downloadJSON(json, filename)
-        let filename = 'tmt_data.csv';
-        downloadCSV(CSV, filename);
-        
-        //Go to URL
-        // location.href = "https://liaa.dc.uba.ar/es/inicio/"
-    
-        },
+    // Get total trials and average RT from psychophysics trials
+    const totalTrials = jsPsych.data.get().filter({trial_type:'psychophysics'}).count();
+    const rtArray = jsPsych.data.get().filter({trial_type:'psychophysics'}).select('rt').values.filter(v => v !== null);
+    const avgRT = rtArray.length > 0 ? (rtArray.reduce((a,b) => a+b, 0) / rtArray.length).toFixed(2) : '';
 
-        //minimum browser size values
-        exclusions: {       
-            min_width: 800,
-            min_height: 600
-        }
-        
+    // Extract participant fields (change keys if needed to match your welcome block form)
+    const age = participant.age || '';
+    const gender = participant["gender-choice"] || '';
+    const mouseOrPad = participant["MouseOrPad-choice"] || '';
+    const hand = participant["hand-choice"] || '';
+    const handConfig = participant["hand_config-choice"] || '';
+    const mail = participant.mail || '';
+
+    // Build embedded data query string — encode URI components for safety
+    const params = new URLSearchParams({
+        AGE: age,
+        GENDER: gender,
+        MOUSEORPAD: mouseOrPad,
+        HAND: hand,
+        HANDCONFIG: handConfig,
+        MAIL: mail,
+        TOTALTRIALS: totalTrials,
+        AVGRT: avgRT
+    });
+
+    // Qualtrics survey URL (replace with your actual survey link)
+    const qualtricsURL = "https://yourqualtricssurvey.qualtrics.com/jfe/form/SURVEYID";
+
+    // Redirect to Qualtrics survey with embedded data params
+    window.location.href = qualtricsURL + "?" + params.toString();
+}
         });
 </script>
 
