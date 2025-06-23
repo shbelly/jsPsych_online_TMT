@@ -444,40 +444,34 @@ function shuffle(array) {
         preload_images: images, 
 
         //When experiment finish, the function in on_finish activates
-       on_finish: function() {
-    // Get participant data from welcome block
-    const participant = jsPsych.data.get().filter({screen_id:"Bienvenidx"}).values()[0] || {};
+      on_finish: function() {
+  const data = jsPsych.data.get();
 
-    // Get total trials and average RT from psychophysics trials
-    const totalTrials = jsPsych.data.get().filter({trial_type:'psychophysics'}).count();
-    const rtArray = jsPsych.data.get().filter({trial_type:'psychophysics'}).select('rt').values.filter(v => v !== null);
-    const avgRT = rtArray.length > 0 ? (rtArray.reduce((a,b) => a+b, 0) / rtArray.length).toFixed(2) : '';
+  const participantID = jsPsych.data.get().values()[0].subject_id || 'unknown';  // or your variable for subject ID
 
-    // Extract participant fields (change keys if needed to match your welcome block form)
-    const age = participant.age || '';
-    const gender = participant["gender-choice"] || '';
-    const mouseOrPad = participant["MouseOrPad-choice"] || '';
-    const hand = participant["hand-choice"] || '';
-    const handConfig = participant["hand_config-choice"] || '';
-    const mail = participant.mail || '';
+  const totalTrials = data.count();
+  const avgRT = data.select('rt').mean() || 0;
+  const medianRT = data.select('rt').median() || 0;
+  const errorCount = data.select('correct').filter(false).count() || 0;  // assumes you have a 'correct' boolean per trial
+  const accuracy = totalTrials > 0 ? ((totalTrials - errorCount) / totalTrials * 100).toFixed(1) : 0;
+  const totalTime = data.select('rt').sum() || 0;
 
-    // Build embedded data query string — encode URI components for safety
-    const params = new URLSearchParams({
-        AGE: age,
-        GENDER: gender,
-        MOUSEORPAD: mouseOrPad,
-        HAND: hand,
-        HANDCONFIG: handConfig,
-        MAIL: mail,
-        TOTALTRIALS: totalTrials,
-        AVGRT: avgRT
-    });
+  // Build URL params
+  const params = new URLSearchParams({
+    tmt_subject_id: participantID,
+    tmt_total_trials: totalTrials,
+    tmt_avg_rt: avgRT.toFixed(2),
+    tmt_median_rt: medianRT.toFixed(2),
+    tmt_error_count: errorCount,
+    tmt_accuracy: accuracy,
+    tmt_total_time: totalTime.toFixed(2)
+  });
 
-    // Qualtrics survey URL (replace with your actual survey link)
-    const qualtricsURL = "https://yourqualtricssurvey.qualtrics.com/jfe/form/SURVEYID";
+  // Your Qualtrics redirect URL (replace this!)
+  const qualtricsURL = 'https://your.qualtrics.survey.url/yourSurvey?'+ params.toString();
 
-    // Redirect to Qualtrics survey with embedded data params
-    window.location.href = qualtricsURL + "?" + params.toString();
+  // Redirect participant to Qualtrics with embedded data
+  window.location.href = qualtricsURL;
 }
         });
 </script>
